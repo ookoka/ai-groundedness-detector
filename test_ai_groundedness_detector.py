@@ -10,6 +10,8 @@ from ai_groundedness_detector import (
     Intervention,
     ToolCallTrace,
 )
+from groundedness_agent_wrapper import validate_agent_output
+from validator_agent import ValidatorAgent
 
 
 def trace(turn_id=1, intervention=Intervention.FULL_AGENT):
@@ -206,6 +208,59 @@ class GroundednessDetectorTests(unittest.TestCase):
 
         self.assertEqual(result.metrics["cross_turn_grounding_retention"], 0.0)
         self.assertIn("cross_turn_grounding_drift", result.issues)
+
+    def test_validator_wrapper_converts_agent_output_to_detector_schema(self):
+        raw_output = {
+            "prompt": "How often does the promotion run?",
+            "answer": "The promotion runs monthly.",
+            "observed_route": "Seismic",
+            "evidence": [
+                {"id": "e1", "source": "Seismic", "text": "Promotion runs monthly."},
+            ],
+            "claims": [
+                {
+                    "id": "c1",
+                    "text": "The promotion runs monthly.",
+                    "supporting_evidence_ids": ["e1"],
+                    "cited_evidence_ids": ["e1"],
+                }
+            ],
+            "required_source": "Seismic",
+            "expected_tool": "search_seismic",
+        }
+
+        result = validate_agent_output(raw_output)
+
+        self.assertTrue(result["metrics"]["grounding_route_correctness"])
+        self.assertTrue(result["metrics"]["grounding_policy_adherence"])
+        self.assertEqual(result["issues"], ())
+
+    def test_validator_agent_builds_payload_from_raw_answer(self):
+        agent = ValidatorAgent(required_source="Seismic", expected_tool="search_seismic")
+        payload = agent.build_payload(
+            prompt="How often does the promotion run?",
+            answer="The promotion runs monthly.",
+            evidence=[
+                {"id": "e1", "source": "Seismic", "text": "Promotion runs monthly."},
+            ],
+            observed_route="Seismic",
+        )
+
+        self.assertEqual(payload["required_source"], "Seismic")
+        self.assertEqual(payload["expected_tool"], "search_seismic")
+        self.assertEqual(payload["claims"][0]["text"], "The promotion runs monthly.")
+
+        result = agent.validate(
+            prompt="How often does the promotion run?",
+            answer="The promotion runs monthly.",
+            evidence=[
+                {"id": "e1", "source": "Seismic", "text": "Promotion runs monthly."},
+            ],
+            observed_route="Seismic",
+        )
+
+        self.assertTrue(result["metrics"]["grounding_route_correctness"])
+        self.assertTrue(result["metrics"]["grounding_policy_adherence"])
 
 
 if __name__ == "__main__":
