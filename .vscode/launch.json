@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Local Groundedness Validator HTTP Server",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5679
+      },
+      "preLaunchTask": "Run Groundedness Validator HTTP Server",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

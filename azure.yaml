@@ -1,0 +1,9 @@
+name: groundedness-validator-agent
+metadata:
+  template: groundedness-validator-agent@0.0.1
+services:
+  groundedness-validator:
+    project: .
+    host: azure.ai.agent
+    language: python
+    module: main
